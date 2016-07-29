@@ -346,8 +346,47 @@ namespace PokemonGo.RocketAPI.Logic
             var attemptCounter = 1;
             do
             {
-                var probability = encounter?.CaptureProbability?.CaptureProbability_?.FirstOrDefault();
+
                 var bestPokeball = await GetBestBall(encounter);
+
+                var maxInvCp = await _inventory.GetHighestPokemonToKeep(encounter?.WildPokemon?.PokemonData);
+
+                if (maxInvCp > encounter?.WildPokemon?.PokemonData.Cp)
+                {
+                    var candy = await _inventory.GetPokemonFamilyCandy(encounter?.WildPokemon?.PokemonData);
+                    if (candy > 300)
+                    {
+                        if (bestPokeball == MiscEnums.Item.ITEM_POKE_BALL)
+                        {
+                            var items = await _inventory.GetItems();
+                            var balls = items.Where(i => ((MiscEnums.Item)i.Item_ == MiscEnums.Item.ITEM_POKE_BALL
+                                      || (MiscEnums.Item)i.Item_ == MiscEnums.Item.ITEM_GREAT_BALL
+                                      || (MiscEnums.Item)i.Item_ == MiscEnums.Item.ITEM_ULTRA_BALL
+                                      || (MiscEnums.Item)i.Item_ == MiscEnums.Item.ITEM_MASTER_BALL) && i.Count > 0).ToList();
+                            int totBalls = 0;
+                            foreach (var ball in balls)
+                            {
+                                totBalls += ball.Count; 
+                            }
+                            if (totBalls <= 60)
+                            {
+                                Logger.Write($"Skipping pokemon {pokemon.PokemonId} with CP {encounter?.WildPokemon?.PokemonData?.Cp}... Do not need it... already have min CP {maxInvCp} and {candy} candy but not enough balls > {totBalls}", LogLevel.Info);
+                                return;
+                            }
+                            else
+                            {
+                                Logger.Write($"Trying to catch pokemon {pokemon.PokemonId} with CP {encounter?.WildPokemon?.PokemonData?.Cp}... Do not need it but I have lots of balls and I need EXP", LogLevel.Info);
+                                }
+                        } else { 
+                            Logger.Write($"Skipping pokemon {pokemon.PokemonId} with CP {encounter?.WildPokemon?.PokemonData?.Cp}... Do not need it... already have min CP {maxInvCp} and {candy} candy.", LogLevel.Info);
+                            return;
+                        }
+                    }
+                }
+                    
+                
+                
+                var probability = encounter?.CaptureProbability?.CaptureProbability_?.FirstOrDefault();
                 if (bestPokeball == MiscEnums.Item.ITEM_UNKNOWN)
                 {
                     Logger.Write($"You don't own any Pokeballs :( - We missed a {pokemon.PokemonId} with CP {encounter?.WildPokemon?.PokemonData?.Cp}", LogLevel.Warning);

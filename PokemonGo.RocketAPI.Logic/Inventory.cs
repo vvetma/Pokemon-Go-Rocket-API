@@ -133,6 +133,37 @@ namespace PokemonGo.RocketAPI.Logic
                 .FirstOrDefault();
         }
 
+        public async Task<int> GetHighestPokemonToKeep(PokemonData pokemon)
+        {
+            var myPokemons = await GetPokemons();
+            var allPokemons = myPokemons.ToList();
+            var pokemons = allPokemons.Where(x => x.PokemonId == pokemon.PokemonId)
+                .OrderByDescending(x => x.Cp);
+            if (pokemons != null && pokemons.Count() >= _client.Settings.TransferPokemonKeepDuplicateAmount)
+            {
+                var myWeekestPokemonToKeep = pokemons.Skip(_client.Settings.TransferPokemonKeepDuplicateAmount - 1).Take(1).First();
+                return myWeekestPokemonToKeep.Cp;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+
+        public async Task<int> GetPokemonFamilyCandy(PokemonData pokemon)
+        {
+
+            var myPokemonSettings = await GetPokemonSettings();
+            var pokemonSettings = myPokemonSettings.ToList();
+            var myPokemonFamilies = await GetPokemonFamilies();
+            var pokemonFamilies = myPokemonFamilies.ToArray();
+            var settings = pokemonSettings.Single(x => x.PokemonId == pokemon.PokemonId);
+            var familyCandy = pokemonFamilies.Single(x => settings.FamilyId == x.FamilyId);
+
+            return familyCandy.Candy;
+        }
+
+
         public async Task<PokemonData> GetHighestPokemonOfTypeByIV(PokemonData pokemon)
         {
             var myPokemon = await GetPokemons();
